@@ -147,7 +147,14 @@ int main(int argc, char** argv)
  	const SDL_VideoInfo* myPointer = SDL_GetVideoInfo();
 
     	//Create the screen
-    	screen = SDL_SetVideoMode(myPointer->current_w, myPointer->current_h, 16,  SDL_DOUBLEBUF | SDL_FULLSCREEN);
+    	if(argc==2)
+	{
+		screen = SDL_SetVideoMode(640, 480, 16,SDL_SWSURFACE);
+	}
+	else
+	{
+		screen = SDL_SetVideoMode(myPointer->current_w, myPointer->current_h, 16,  SDL_DOUBLEBUF | SDL_FULLSCREEN);
+	}
 	if (screen == NULL)
 	{
 		printf("Unable to set video mode: %s\n", SDL_GetError());
@@ -170,7 +177,7 @@ int main(int argc, char** argv)
     do {
         // Process the events
         
-        while (SDL_PollEvent(&Event)) 
+        while (SDL_WaitEvent(&Event)) 
         {
             switch (Event.type)
             {
