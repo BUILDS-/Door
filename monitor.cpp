@@ -136,16 +136,20 @@ void printF(char *c, int x, int y){
 
 int main(int argc, char** argv)
 {
-   background_position.x = 0; 			// initialize position rectangle
+	background_position.x = 0; 			// initialize position rectangle
 	background_position.y = 0;
    
-    // Initialize the SDL library with the Video subsystem
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE);
-	 SDL_Surface* loaded_image = NULL;
+    	// Initialize the SDL library with the Video subsystem
+    	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE);
+	SDL_Surface* loaded_image = NULL;
 
-    //Create the screen
-    screen = SDL_SetVideoMode(1280, 1024, 16,  SDL_DOUBLEBUF | SDL_FULLSCREEN);
-	if (screen == NULL) {
+	// Get the current video hardware information
+ 	const SDL_VideoInfo* myPointer = SDL_GetVideoInfo();
+
+    	//Create the screen
+    	screen = SDL_SetVideoMode(myPointer->current_w, myPointer->current_h, 16,  SDL_DOUBLEBUF | SDL_FULLSCREEN);
+	if (screen == NULL)
+	{
 		printf("Unable to set video mode: %s\n", SDL_GetError());
 		return 1;
 	}
