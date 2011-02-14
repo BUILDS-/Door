@@ -120,9 +120,9 @@ SDL_Surface *Load_image( std::string filename )
 void fontInit(){
         TTF_Init();
         font = TTF_OpenFont("/usr/share/fonts/truetype/unfonts/UnDotum.ttf", 36	);
-        fColor.r = 0;
-        fColor.g = 0;
-        fColor.b = 0;
+        fColor.r = 255;
+        fColor.g = 255;
+        fColor.b = 255;
 }
 
 //Print the designated string at the specified coordinates
