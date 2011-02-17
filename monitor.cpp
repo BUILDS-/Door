@@ -11,7 +11,7 @@
 #include <errno.h> /* Error number definitions */
 #include <termios.h> /* POSIX terminal control definitions */
 #define back "one.jpg"
-#define use "cake.jpg"
+#define use "hand.jpg"
 using namespace std;
 
 SDL_Surface* screen;
@@ -26,15 +26,15 @@ TTF_Font* font;
 SDL_Rect background_position;
 SDL_Surface* background = NULL;	// placed here so that any function can access them
 SDL_Surface* user = NULL;
-void printF(char *c, SDL_Surface* screen, int x, int y);
+void printF(const char *c, SDL_Surface* screen, int x, int y);
 
 void welcomemessage(SDL_Surface *Surface)
 {
 	 //Print to center of screen
-    	printF("Welcome to BUILDS", screen, NULL,10);
-	printF("Please Swipe your ID", screen, NULL, 80);
-	printF("Next BUILDS Meeting:", screen, NULL, 85);
-	printF("6:30 pm Wednesday ", screen, NULL, 90);
+    	printF("Welcome to BUILDS", screen, -1,10);
+	printF("Please Swipe your ID", screen, -1, 80);
+	printF("Next BUILDS Meeting:", screen, -1, 85);
+	printF("6:30 pm Wednesday ", screen, -1, 90);
 }
 
 
@@ -228,9 +228,9 @@ void fontInit(){
 }
 
 //Print the designated string at the specified coordinates
-void printF(char *c, SDL_Surface* screen, int x, int y){
+void printF(const char *c, SDL_Surface* screen, int x, int y){
         fontSurface = TTF_RenderText_Solid(font, c, fColor);
-        if(x==NULL)
+        if(x==-1)
         {
         	fontRect.x = screen->w/2 - ((strlen(c)*18)/2);
         }
@@ -346,7 +346,7 @@ int main(int argc, char** argv)
 							SDL_Flip(screen); 
 							SDL_BlitSurface(user, NULL, screen, &background_position ); // show the users background
 							//Say hello
-							printF((char*)name.c_str(), screen, NULL, 10); 
+							printF((char*)name.c_str(), screen, -1, 10); 
 
 							fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_NONBLOCK);
 							tcgetattr(fd, &options);
