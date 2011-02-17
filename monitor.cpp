@@ -4,12 +4,14 @@
 #include <string>
 #include <iostream>
 #include <mysql.h>
+#include <time.h>
 #include <stdio.h>
 #include <cstring>
 #include <fcntl.h> /* File control definitions */
 #include <errno.h> /* Error number definitions */
 #include <termios.h> /* POSIX terminal control definitions */
-
+#define back "one.jpg"
+#define use "cake.jpg"
 using namespace std;
 
 SDL_Surface* screen;
@@ -22,9 +24,21 @@ SDL_Event Event;
 TTF_Font* font;
 
 SDL_Rect background_position;
-SDL_Surface* loaded_image = NULL;	// placed here so that any function can access them
-SDL_Surface* cake = NULL;
- void PrintKeyInfo( SDL_KeyboardEvent *key );
+SDL_Surface* background = NULL;	// placed here so that any function can access them
+SDL_Surface* user = NULL;
+void printF(char *c, SDL_Surface* screen, int x, int y);
+
+void welcomemessage(SDL_Surface *Surface)
+{
+	 //Print to center of screen
+    	printF("Welcome to BUILDS", screen, NULL,10);
+	printF("Please Swipe your ID", screen, NULL, 80);
+	printF("Next BUILDS Meeting:", screen, NULL, 85);
+	printF("6:30 pm Wednesday ", screen, NULL, 90);
+}
+
+
+void PrintKeyInfo( SDL_KeyboardEvent *key );
     void PrintModifiers( SDLMod mod );
 
     void PrintKeyInfo( SDL_KeyboardEvent *key ){
@@ -51,6 +65,94 @@ SDL_Surface* cake = NULL;
         /* Print modifier info */
         PrintModifiers( key->keysym.mod );
     }
+
+Uint32 getpixel(SDL_Surface *surface, int x, int y)
+{
+	    int bpp = surface->format->BytesPerPixel;
+	        /* Here p is the address to the pixel we want to retrieve */
+	        Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * bpp;
+
+		    switch(bpp) {
+			        case 1:
+					        return *p;
+						        break;
+
+							    case 2:
+							        return *(Uint16 *)p;
+								        break;
+
+									    case 3:
+									        if(SDL_BYTEORDER == SDL_BIG_ENDIAN)
+											            return p[0] << 16 | p[1] << 8 | p[2];
+										        else
+												            return p[0] | p[1] << 8 | p[2] << 16;
+											        break;
+
+												    case 4:
+												        return *(Uint32 *)p;
+													        break;
+
+														    default:
+														        return 0;       /* shouldn't happen, but avoids warnings */
+															    }
+}
+
+
+void putpixel(SDL_Surface *surface, int x, int y, Uint32 pixel)
+{
+	    int bpp = surface->format->BytesPerPixel;
+	        /* Here p is the address to the pixel we want to set */
+	        Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * bpp;
+
+		    switch(bpp) {
+			        case 1:
+					        *p = pixel;
+						        break;
+
+							    case 2:
+							        *(Uint16 *)p = pixel;
+								        break;
+
+									    case 3:
+									        if(SDL_BYTEORDER == SDL_BIG_ENDIAN) {
+											            p[0] = (pixel >> 16) & 0xff;
+												                p[1] = (pixel >> 8) & 0xff;
+														            p[2] = pixel & 0xff;
+															            } else {
+																	                p[0] = pixel & 0xff;
+																			            p[1] = (pixel >> 8) & 0xff;
+																				                p[2] = (pixel >> 16) & 0xff;
+																						        }
+										        break;
+
+											    case 4:
+											        *(Uint32 *)p = pixel;
+												        break;
+													    }
+}
+
+
+
+
+SDL_Surface *ScaleSurface(SDL_Surface *Surface, Uint16 Width, Uint16 Height)
+{
+	    if(!Surface || !Width || !Height)
+		            return 0;
+	        
+	        SDL_Surface *_ret = SDL_CreateRGBSurface(Surface->flags, Width, Height, Surface->format->BitsPerPixel,
+				        Surface->format->Rmask, Surface->format->Gmask, Surface->format->Bmask, Surface->format->Amask);
+		    double  _stretch_factor_x = (static_cast<double>(Width)  / static_cast<double>(Surface->w)),
+			            _stretch_factor_y = (static_cast<double>(Height) / static_cast<double>(Surface->h));
+
+		        for(Sint32 y = 0; y < Surface->h; y++)
+				        for(Sint32 x = 0; x < Surface->w; x++)
+						            for(Sint32 o_y = 0; o_y < _stretch_factor_y; ++o_y)
+								                    for(Sint32 o_x = 0; o_x < _stretch_factor_x; ++o_x)
+											                        putpixel(_ret, static_cast<Sint32>(_stretch_factor_x * x) + o_x, 
+																                        static_cast<Sint32>(_stretch_factor_y * y) + o_y, getpixel(Surface, x, y));
+
+			    return _ret;
+}
 
     /* Print modifier info */
     void PrintModifiers( SDLMod mod ){
@@ -126,10 +228,17 @@ void fontInit(){
 }
 
 //Print the designated string at the specified coordinates
-void printF(char *c, int x, int y){
+void printF(char *c, SDL_Surface* screen, int x, int y){
         fontSurface = TTF_RenderText_Solid(font, c, fColor);
-        fontRect.x = x;
-        fontRect.y = y;
+        if(x==NULL)
+        {
+        	fontRect.x = screen->w/2 - ((strlen(c)*18)/2);
+        }
+        else
+        {
+        	fontRect.x= x;
+        }
+        fontRect.y = ((double)(y)/100)*screen->h;
         SDL_BlitSurface(fontSurface, NULL, screen, &fontRect);
         SDL_Flip(screen);
 }
@@ -141,7 +250,6 @@ int main(int argc, char** argv)
    
     	// Initialize the SDL library with the Video subsystem
     	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE);
-	SDL_Surface* loaded_image = NULL;
 
 	// Get the current video hardware information
  	const SDL_VideoInfo* myPointer = SDL_GetVideoInfo();
@@ -161,18 +269,14 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	//background
-	loaded_image = Load_image("one.jpg"); // load our background Surface
-	cake = Load_image("cake.bmp"); // load our cake
-
-	SDL_BlitSurface( loaded_image, NULL, screen, &background_position ); // put the background on
-    //Initialize fonts
-    fontInit();
-
-    //Print to center of screen
-    printF("Welcome to BUILDS", screen->w/2 - 38*3, 100);
-	printF("Please Swipe your ID", screen->w/2 - 38*3, 700);
-	printF("Next BUILDS Meeting:", screen->w/2 - 38*3, 900);
-	printF("6:30 pm Wednesday ", screen->w/2 - 38*3, 950);
+	user = ScaleSurface(Load_image(use),screen->w,screen->h); // load our cake
+	background = ScaleSurface(Load_image(back), screen->w, screen->h);
+	SDL_BlitSurface( background, NULL, screen, &background_position ); // put the background on
+    	//Initialize fonts
+    	fontInit();
+	
+	welcomemessage(screen);
+	
 	string id2;
     do {
         // Process the events
@@ -188,52 +292,72 @@ int main(int argc, char** argv)
 					}
 					else
 					{
-						id2.replace(0,10,"");
-						id2.replace(0,1,"u");
+						if(argc==2)
+						{
+						}
+						else
+						{
+							id2.replace(0,10,"");
+							id2.replace(0,1,"u");
+						}
 						MYSQL mysql; 
 						MYSQL_RES *res; 
 						MYSQL_ROW row; 
 						string name;
 						char query[90]; 
 						mysql_init(&mysql); 
-						if (!mysql_real_connect(&mysql,"localhost","door","buildsdoor","door",0,NULL,0))
+						if(argc==2)
+						{
+							if (!mysql_real_connect(&mysql,"thingone.furstlabs.com","root","","door",0,NULL,0))
+							{
+								fprintf(stderr, "Failed to connect to database: Error: %s\n",
+								mysql_error(&mysql));
+							}
+						}
+						else if (!mysql_real_connect(&mysql,"localhost","door","buildsdoor","door",0,NULL,0))
 						{
 							fprintf(stderr, "Failed to connect to database: Error: %s\n",
 								mysql_error(&mysql));
 						}
 
-						sprintf(query,"SELECT first FROM users where swipe=\"%s\"",id2.c_str()); 
-						
-						cout<<query<<endl;
+						sprintf(query,"SELECT id, first FROM users where swipe=\"%s\"",id2.c_str()); 
 						
 						if(mysql_real_query(&mysql,query,(unsigned int) strlen(query))!= 0 )
 						{
 							cout<<mysql_error(&mysql)<<endl;
 						}
-						res = mysql_use_result(&mysql); 
+						res = mysql_store_result(&mysql); 
 
 						while((row = mysql_fetch_row(res)))
 						{ 
 							name = "Hello ";
-							name.append(row[0]);
+							name.append(row[1]);
 							
+							sprintf(query,"insert into log(user,time) VALUES(\"%s\",NOW())",row[0]); 
+							
+							if(mysql_real_query(&mysql,query,(unsigned int) strlen(query))!= 0 )
+							{
+								cout<<mysql_error(&mysql)<<endl;
+							}
+							 
 							int fd;
 							struct termios options;
-							//SDL_BlitSurface(loaded_image, NULL, screen, &background_position ); // put the background on
 							SDL_FillRect(screen,NULL, 0x000000);
 							SDL_Flip(screen); 
-							SDL_BlitSurface(cake, NULL, screen, &background_position ); // show the cakesd
-							printF((char*)name.c_str(), screen->w/2 - 38*3, 100); 
-							
-										// without it all you would see is a blur!
+							SDL_BlitSurface(user, NULL, screen, &background_position ); // show the users background
+							//Say hello
+							printF((char*)name.c_str(), screen, NULL, 10); 
+
 							fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_NONBLOCK);
 							tcgetattr(fd, &options);
 							
 							cfsetispeed(&options, B9600);
 							cfsetospeed(&options, B9600);
 
+							//unlock the door
 							write(fd, "u\r", 3);
-							int nbytes;
+							
+							/*int nbytes;
 							#define BUFSIZE		30
 							char bufptr[BUFSIZE];
 							while ((nbytes = read(fd, bufptr, BUFSIZE)) > 0)
@@ -243,23 +367,19 @@ int main(int argc, char** argv)
 											break;
 								}
 							}
+							*/
 							mysql_free_result(res); 
 						}
-						SDL_Delay( 5000);  // I put this here so you will be able to see the animation change!	
+						SDL_Delay(5000);  // I put this here so you will be able to see the animation change!	
 						id2="";	
-						SDL_BlitSurface( loaded_image, NULL, screen, &background_position ); // put the background on
-						//Print to center of screen
-						printF("Welcome to BUILDS", screen->w/2 - 38*3, 100);
-						printF("Please Swipe your ID", screen->w/2 - 38*3, 700);
-						printF("Next BUILDS Meeting:", screen->w/2 - 38*3, 900);
-						printF("6:30 pm Wednesday ", screen->w/2 - 38*3, 950);
+						SDL_BlitSurface( background, NULL, screen, &background_position ); // put the background on
+						welcomemessage(screen);
 					}
                 break;
 				default:
 				break;
 			}
 		}
-    //SDL_Delay(100);
 	}
 	while (Event.type != SDL_QUIT);
 
