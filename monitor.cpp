@@ -257,7 +257,9 @@ int main(int argc, char** argv)
 			cout<<"Could not connect to Ardunio on USB port 0 or 1"<<endl;
 			return 1;
 		}
+		cout<<"Connected to Arduino on port 1"<<endl;
 	}
+	cout<<"Connected to Arduino on port 0"<<endl;
 	struct termios options;
 	tcgetattr(fd, &options);
 	
@@ -363,7 +365,12 @@ int main(int argc, char** argv)
 							printF((char*)name.c_str(), screen, -1, 10); 
 
 							//unlock the door
-							write(fd, "u\r", 3);
+							int ww = 0;
+							ww= write(fd, "u\r", 3);
+							if(ww != 3)
+							{
+								cout<<"Did not succesfully write to Arduino. Only wrote "<<ww<<" bytes"<<endl;
+							}
 							
 							mysql_free_result(res); 
 						}
