@@ -247,7 +247,23 @@ int main(int argc, char** argv)
 {
 	background_position.x = 0; 			// initialize position rectangle
 	background_position.y = 0;
-   
+   	int fd;
+   	fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_NONBLOCK);
+	if(fd == -1)
+	{
+		fd = open("/dev/ttyUSB1", O_RDWR | O_NOCTTY | O_NONBLOCK);
+		if(fd == -1)
+		{
+			cout<<"Could not connect to Ardunio on USB port 0 or 1"<<endl;
+			return 1;
+		}
+	}
+	struct termios options;
+	tcgetattr(fd, &options);
+	
+	cfsetispeed(&options, B9600);
+	cfsetospeed(&options, B9600);
+							
     	// Initialize the SDL library with the Video subsystem
     	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE);
 
@@ -339,35 +355,16 @@ int main(int argc, char** argv)
 							{
 								cout<<mysql_error(&mysql)<<endl;
 							}
-							 
-							int fd;
-							struct termios options;
+							
 							SDL_FillRect(screen,NULL, 0x000000);
 							SDL_Flip(screen); 
 							SDL_BlitSurface(user, NULL, screen, &background_position ); // show the users background
 							//Say hello
 							printF((char*)name.c_str(), screen, -1, 10); 
 
-							fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_NONBLOCK);
-							tcgetattr(fd, &options);
-							
-							cfsetispeed(&options, B9600);
-							cfsetospeed(&options, B9600);
-
 							//unlock the door
 							write(fd, "u\r", 3);
 							
-							/*int nbytes;
-							#define BUFSIZE		30
-							char bufptr[BUFSIZE];
-							while ((nbytes = read(fd, bufptr, BUFSIZE)) > 0)
-							{
-								if (bufptr[-1] == '\n' || bufptr[-1] == '\r')
-								{
-											break;
-								}
-							}
-							*/
 							mysql_free_result(res); 
 						}
 						SDL_Delay(5000);  // I put this here so you will be able to see the animation change!	
